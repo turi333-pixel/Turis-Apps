@@ -84,14 +84,7 @@ export function AppGrid() {
     }, [activeFilter, searchQuery, allApps]);
 
     return (
-        <section id="apps" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-            {/* Section header */}
-            <div className="text-center mb-12">
-                <h2 className="text-3xl sm:text-4xl font-bold mb-4">{t("grid.title")}</h2>
-                <p className="text-muted text-lg max-w-xl mx-auto">
-                    {t("grid.subtitle")}
-                </p>
-            </div>
+        <section id="apps" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-20">
 
             {/* Search */}
             <div className="mb-8">

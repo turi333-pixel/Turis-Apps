@@ -82,20 +82,32 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.1 }}
                 >
-                    <div className="flex items-start gap-4 mb-6">
-                        <span className="text-5xl" role="img" aria-label={app.name}>
-                            {app.emoji}
-                        </span>
-                        <div>
-                            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-3">
-                                {app.name}
-                            </h1>
-                            <div className="flex flex-wrap gap-2">
-                                {app.categories.map((cat) => (
-                                    <CategoryBadge key={cat} category={cat} />
-                                ))}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
+                        <div className="flex items-start gap-4">
+                            <span className="text-5xl" role="img" aria-label={app.name}>
+                                {app.emoji}
+                            </span>
+                            <div>
+                                <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-3">
+                                    {app.name}
+                                </h1>
+                                <div className="flex flex-wrap gap-2">
+                                    {app.categories.map((cat) => (
+                                        <CategoryBadge key={cat} category={cat} />
+                                    ))}
+                                </div>
                             </div>
                         </div>
+
+                        <a
+                            href={app.launchUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-base font-semibold bg-accent text-white hover:bg-accent-hover transition-all duration-200 hover:scale-105 hover:shadow-xl hover:shadow-accent/25 shrink-0 w-full sm:w-auto"
+                        >
+                            {t("detail.launch")}
+                            <ExternalLink className="w-4 h-4" />
+                        </a>
                     </div>
                 </motion.div>
 
@@ -142,26 +154,16 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
                     <p className="text-sm text-muted">{t("detail.screenshot")}</p>
                 </motion.div>
 
-                {/* Launch button & Delete */}
+                {/* Delete Area */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.5 }}
-                    className="flex flex-col sm:flex-row items-center justify-center gap-4"
+                    className="flex justify-center mt-12 mb-8"
                 >
-                    <a
-                        href={app.launchUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-8 py-4 rounded-full text-base font-semibold bg-accent text-white hover:bg-accent-hover transition-all duration-200 hover:scale-105 hover:shadow-xl hover:shadow-accent/25"
-                    >
-                        {t("detail.launch")}
-                        <ExternalLink className="w-4 h-4" />
-                    </a>
-
                     <button
                         onClick={() => setIsDeleting(true)}
-                        className="inline-flex items-center gap-2 px-6 py-4 rounded-full text-base font-medium text-red-400 bg-red-400/10 hover:bg-red-400/20 transition-all duration-200"
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium text-red-400 bg-red-400/10 hover:bg-red-400/20 transition-all duration-200"
                     >
                         <Trash2 className="w-4 h-4" />
                         {t("detail.delete")}

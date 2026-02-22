@@ -49,7 +49,7 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
             const { data, error } = await supabase
                 .from("apps")
                 .select("*")
-                .eq("id", baseApp.id)
+                .eq("slug", baseApp.slug)
                 .single();
 
             if (data && !error) {
@@ -68,7 +68,7 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
             }
         }
         fetchFreshData();
-    }, [baseApp.id]);
+    }, [baseApp.slug]);
 
     useEffect(() => {
         // Update form when appData changes (e.g. after DB fetch)
@@ -112,7 +112,7 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
         const { error } = await supabase
             .from("apps")
             .delete()
-            .eq("id", appData.id);
+            .eq("slug", appData.slug);
 
         setSubmittingDelete(false);
 
@@ -160,7 +160,7 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
                 screenshot_url: form.screenshotUrl || null,
                 tags: tagsArray,
             })
-            .eq("id", appData.id);
+            .eq("slug", appData.slug);
 
         setSubmittingModify(false);
 

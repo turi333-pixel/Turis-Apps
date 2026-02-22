@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ExternalLink, Camera, Check, Trash2, X, Loader2, Edit2, Lock, Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { App, Category } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { CategoryBadge } from "@/components/CategoryBadge";
@@ -21,7 +21,7 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
     const localizedSeedApps = getLocalizedSeedApps(language);
     const seedMatch = localizedSeedApps.find(a => a.id === initialApp.id);
 
-    const app = seedMatch ? {
+    const baseApp = seedMatch ? {
         ...initialApp,
         name: seedMatch.name,
         shortDescription: seedMatch.shortDescription,
@@ -29,6 +29,60 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
         features: seedMatch.features || initialApp.features,
         tags: seedMatch.tags || initialApp.tags,
     } : initialApp;
+
+    const [appData, setAppData] = useState<App>(baseApp);
+
+    const [form, setForm] = useState({
+        name: appData.name,
+        emoji: appData.emoji || "🤖",
+        shortDescription: appData.shortDescription,
+        longDescription: appData.longDescription,
+        category: appData.categories[0] || "",
+        launchUrl: appData.launchUrl,
+        screenshotUrl: appData.screenshotUrl || "",
+        tags: appData.tags.join(", "),
+    });
+
+    useEffect(() => {
+        // Fetch fresh data from DB on mount to override stale static HTML
+        async function fetchFreshData() {
+            const { data, error } = await supabase
+                .from("apps")
+                .select("*")
+                .eq("id", baseApp.id)
+                .single();
+
+            if (data && !error) {
+                setAppData({
+                    ...baseApp,
+                    name: data.name !== "🤖" ? data.name : baseApp.name,
+                    emoji: data.emoji || baseApp.emoji,
+                    shortDescription: data.short_description || baseApp.shortDescription,
+                    longDescription: data.long_description || data.short_description || baseApp.longDescription,
+                    categories: data.categories && data.categories.length ? data.categories : baseApp.categories,
+                    launchUrl: data.launch_url || baseApp.launchUrl,
+                    screenshotUrl: data.screenshot_url || baseApp.screenshotUrl,
+                    features: data.features && data.features.length ? data.features : baseApp.features,
+                    tags: data.tags && data.tags.length ? data.tags : baseApp.tags,
+                });
+            }
+        }
+        fetchFreshData();
+    }, [baseApp.id]);
+
+    useEffect(() => {
+        // Update form when appData changes (e.g. after DB fetch)
+        setForm({
+            name: appData.name,
+            emoji: appData.emoji || "🤖",
+            shortDescription: appData.shortDescription,
+            longDescription: appData.longDescription,
+            category: appData.categories[0] || "",
+            launchUrl: appData.launchUrl,
+            screenshotUrl: appData.screenshotUrl || "",
+            tags: appData.tags.join(", "),
+        });
+    }, [appData]);
 
     const router = useRouter();
     const [isDeleting, setIsDeleting] = useState(false);
@@ -44,17 +98,6 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
 
     const EMOJI_OPTIONS = ["🤖", "🎙", "👗", "🌊", "🍺", "🏍", "🎸", "🌱", "🌦", "⚓", "🔎", "⚡", "💡", "🚀", "🎯", "🛠", "✨", "🔥"];
 
-    const [form, setForm] = useState({
-        name: app.name,
-        emoji: app.emoji || "🤖",
-        shortDescription: app.shortDescription,
-        longDescription: app.longDescription,
-        category: app.categories[0] || "",
-        launchUrl: app.launchUrl,
-        screenshotUrl: app.screenshotUrl || "",
-        tags: app.tags.join(", "),
-    });
-
     const handleDelete = async (e: React.FormEvent) => {
         e.preventDefault();
         setPasswordError(false);
@@ -69,7 +112,7 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
         const { error } = await supabase
             .from("apps")
             .delete()
-            .eq("id", app.id);
+            .eq("id", appData.id);
 
         setSubmittingDelete(false);
 
@@ -117,7 +160,7 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
                 screenshot_url: form.screenshotUrl || null,
                 tags: tagsArray,
             })
-            .eq("id", app.id);
+            .eq("id", appData.id);
 
         setSubmittingModify(false);
 
@@ -140,7 +183,7 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
         <div className="relative min-h-screen">
             {/* Background gradient */}
             <div
-                className={`absolute inset-0 bg-gradient-to-br ${app.gradient} pointer-events-none`}
+                className={`absolute inset-0 bg-gradient-to-br ${appData.gradient} pointer-events-none`}
             />
 
             <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -167,15 +210,15 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
                 >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
                         <div className="flex items-start gap-4">
-                            <span className="text-5xl" role="img" aria-label={app.name}>
-                                {app.emoji}
+                            <span className="text-5xl" role="img" aria-label={appData.name}>
+                                {appData.emoji}
                             </span>
                             <div>
                                 <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-3">
-                                    {app.name}
+                                    {appData.name}
                                 </h1>
                                 <div className="flex flex-wrap gap-2">
-                                    {app.categories.map((cat) => (
+                                    {appData.categories.map((cat) => (
                                         <CategoryBadge key={cat} category={cat} />
                                     ))}
                                 </div>
@@ -183,7 +226,7 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
                         </div>
 
                         <a
-                            href={app.launchUrl}
+                            href={appData.launchUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-base font-semibold bg-accent text-white hover:bg-accent-hover transition-all duration-200 hover:scale-105 hover:shadow-xl hover:shadow-accent/25 shrink-0 w-full sm:w-auto"
@@ -202,7 +245,7 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
                     className="glass rounded-[var(--radius-card)] p-6 sm:p-8 mb-8"
                 >
                     <p className="text-lg leading-relaxed text-muted">
-                        {app.longDescription}
+                        {appData.longDescription}
                     </p>
                 </motion.div>
 
@@ -215,7 +258,7 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
                 >
                     <h2 className="text-xl font-bold mb-4">{t("detail.keyFeatures")}</h2>
                     <ul className="space-y-3">
-                        {app.features.map((feature, i) => (
+                        {appData.features.map((feature, i) => (
                             <li key={i} className="flex items-start gap-3">
                                 <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-accent/15 flex items-center justify-center">
                                     <Check className="w-3 h-3 text-accent" />
@@ -281,7 +324,7 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
                             >
                                 <X className="w-5 h-5" />
                             </button>
-                            <h3 className="text-xl font-bold mb-2">{t("delete.title")} {app.name}?</h3>
+                            <h3 className="text-xl font-bold mb-2">{t("delete.title")} {appData.name}?</h3>
                             <p className="text-sm text-muted mb-6">
                                 {t("delete.warning")}
                             </p>
@@ -369,7 +412,7 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
                                     </div>
                                 ) : (
                                     <div className="pt-4">
-                                        <h3 className="text-2xl font-bold mb-6">{t("detail.modify" as TranslationKey)}: {app.name}</h3>
+                                        <h3 className="text-2xl font-bold mb-6">{t("detail.modify" as TranslationKey)}: {appData.name}</h3>
                                         <form onSubmit={handleModifySubmit} className="flex flex-col gap-6">
                                             {/* App Name */}
                                             <div>

@@ -18,8 +18,18 @@ const ADMIN_PASSWORD = "turi2024";
 export function AppDetailClient({ app: initialApp }: { app: App }) {
     const { t, language } = useLanguage();
 
-    // Override with localized text if it's a seed app
-    const app = getLocalizedSeedApps(language).find(a => a.id === initialApp.id) || initialApp;
+    const localizedSeedApps = getLocalizedSeedApps(language);
+    const seedMatch = localizedSeedApps.find(a => a.id === initialApp.id);
+
+    const app = seedMatch ? {
+        ...initialApp,
+        name: seedMatch.name,
+        shortDescription: seedMatch.shortDescription,
+        longDescription: seedMatch.longDescription,
+        features: seedMatch.features || initialApp.features,
+        tags: seedMatch.tags || initialApp.tags,
+    } : initialApp;
+
     const router = useRouter();
     const [isDeleting, setIsDeleting] = useState(false);
     const [isModifying, setIsModifying] = useState(false);

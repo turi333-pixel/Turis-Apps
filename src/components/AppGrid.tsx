@@ -56,9 +56,26 @@ export function AppGrid() {
     const localizedSeedApps = useMemo(() => getLocalizedSeedApps(language), [language]);
 
     const allApps = useMemo(() => {
-        const seedSlugs = new Set(localizedSeedApps.map((a) => a.slug));
-        const uniqueDynamic = dynamicApps.filter((a) => !seedSlugs.has(a.slug));
-        return [...localizedSeedApps, ...uniqueDynamic];
+        // We want DB data to override seed data, but map missing localized fields
+        const allDbSlugs = new Set(dynamicApps.map((a) => a.slug));
+
+        // Add seed apps that aren't in DB yet
+        const seedOnly = localizedSeedApps.filter(a => !allDbSlugs.has(a.slug));
+
+        // Merge DB apps with localized seed descriptions if they exist
+        const mergedDynamic = dynamicApps.map(dbApp => {
+            const seedMatch = localizedSeedApps.find(s => s.slug === dbApp.slug);
+            if (!seedMatch) return dbApp;
+            return {
+                ...dbApp,
+                name: dbApp.name !== "🤖" ? dbApp.name : seedMatch.name, // keep db changes
+                longDescription: dbApp.longDescription || seedMatch.longDescription,
+                shortDescription: dbApp.shortDescription || seedMatch.shortDescription,
+                features: dbApp.features.length ? dbApp.features : seedMatch.features,
+            };
+        });
+
+        return [...seedOnly, ...mergedDynamic].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
     }, [dynamicApps, localizedSeedApps]);
 
     const filteredApps = useMemo(() => {

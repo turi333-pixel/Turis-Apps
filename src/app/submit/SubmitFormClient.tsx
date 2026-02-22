@@ -21,6 +21,7 @@ export function SubmitFormClient() {
 
     const [form, setForm] = useState({
         name: "",
+        emoji: "🤖",
         shortDescription: "",
         longDescription: "",
         category: "",
@@ -28,6 +29,8 @@ export function SubmitFormClient() {
         screenshotUrl: "",
         tags: "",
     });
+
+    const EMOJI_OPTIONS = ["🤖", "🎙", "👗", "🌊", "🍺", "🏍", "🎸", "🌱", "🌦", "⚓", "🔎", "⚡", "💡", "🚀", "🎯", "🛠", "✨", "🔥"];
 
     const handlePasswordSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -57,6 +60,7 @@ export function SubmitFormClient() {
         const { error } = await supabase.from("apps").insert({
             slug,
             name: form.name,
+            emoji: form.emoji,
             short_description: form.shortDescription,
             long_description: form.longDescription,
             categories: [form.category],
@@ -172,6 +176,28 @@ export function SubmitFormClient() {
                             placeholder="e.g. My AI Tool"
                             className={inputClass}
                         />
+                    </div>
+
+                    {/* Icon Selection */}
+                    <div>
+                        <label className="block text-sm font-medium mb-2">
+                            {t("submit.emoji")} *
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                            {EMOJI_OPTIONS.map((emoji) => (
+                                <button
+                                    key={emoji}
+                                    type="button"
+                                    onClick={() => setForm({ ...form, emoji })}
+                                    className={`w-12 h-12 rounded-xl text-2xl flex items-center justify-center transition-all ${form.emoji === emoji
+                                            ? "bg-accent/20 scale-110 shadow-lg shadow-accent/10 border-2 border-accent"
+                                            : "glass bg-surface hover:bg-white/10 border-2 border-transparent"
+                                        }`}
+                                >
+                                    {emoji}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Short Description */}

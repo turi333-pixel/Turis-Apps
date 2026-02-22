@@ -42,6 +42,7 @@ export const translations = {
         "detail.keyFeatures": "Key Features",
         "detail.screenshot": "Application screenshot",
         "detail.launch": "Launch App",
+        "detail.modify": "Modify App",
         "detail.delete": "Delete App",
 
         // Delete Modal
@@ -136,6 +137,7 @@ export const translations = {
         "detail.keyFeatures": "Características Principales",
         "detail.screenshot": "Captura de la aplicación",
         "detail.launch": "Abrir Aplicación",
+        "detail.modify": "Modificar App",
         "detail.delete": "Eliminar App",
 
         // Delete Modal
@@ -230,6 +232,7 @@ export const translations = {
         "detail.keyFeatures": "Hauptmerkmale",
         "detail.screenshot": "Screenshot der Anwendung",
         "detail.launch": "App Starten",
+        "detail.modify": "App Bearbeiten",
         "detail.delete": "App Löschen",
 
         // Delete Modal

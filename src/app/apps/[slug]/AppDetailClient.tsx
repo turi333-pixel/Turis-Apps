@@ -1,16 +1,17 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ExternalLink, Camera, Check, Trash2, X, Loader2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Camera, Check, Trash2, X, Loader2, Edit2, Lock, Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { App } from "@/lib/types";
+import { App, Category } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { TranslationKey } from "@/lib/i18n/translations";
 import { getLocalizedSeedApps } from "@/lib/i18n/seedApps";
+import { allCategories } from "@/lib/apps-data";
 
 const ADMIN_PASSWORD = "turi2024";
 
@@ -21,9 +22,28 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
     const app = getLocalizedSeedApps(language).find(a => a.id === initialApp.id) || initialApp;
     const router = useRouter();
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isModifying, setIsModifying] = useState(false);
+    const [modifyAuthenticated, setModifyAuthenticated] = useState(false);
+
     const [password, setPassword] = useState("");
     const [passwordError, setPasswordError] = useState(false);
+
     const [submittingDelete, setSubmittingDelete] = useState(false);
+    const [submittingModify, setSubmittingModify] = useState(false);
+    const [modifyError, setModifyError] = useState<string | null>(null);
+
+    const EMOJI_OPTIONS = ["🤖", "🎙", "👗", "🌊", "🍺", "🏍", "🎸", "🌱", "🌦", "⚓", "🔎", "⚡", "💡", "🚀", "🎯", "🛠", "✨", "🔥"];
+
+    const [form, setForm] = useState({
+        name: app.name,
+        emoji: app.emoji || "🤖",
+        shortDescription: app.shortDescription,
+        longDescription: app.longDescription,
+        category: app.categories[0] || "",
+        launchUrl: app.launchUrl,
+        screenshotUrl: app.screenshotUrl || "",
+        tags: app.tags.join(", "),
+    });
 
     const handleDelete = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -52,6 +72,59 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
         router.push("/");
         router.refresh();
     };
+
+    const handleModifyPasswordSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setPasswordError(false);
+
+        if (password !== ADMIN_PASSWORD) {
+            setPasswordError(true);
+            return;
+        }
+
+        setModifyAuthenticated(true);
+    };
+
+    const handleModifySubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSubmittingModify(true);
+        setModifyError(null);
+
+        const tagsArray = form.tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean);
+
+        const { error } = await supabase
+            .from("apps")
+            .update({
+                name: form.name,
+                emoji: form.emoji,
+                short_description: form.shortDescription,
+                long_description: form.longDescription,
+                categories: [form.category as Category],
+                launch_url: form.launchUrl,
+                screenshot_url: form.screenshotUrl || null,
+                tags: tagsArray,
+            })
+            .eq("id", app.id);
+
+        setSubmittingModify(false);
+
+        if (error) {
+            console.error("Supabase update error:", error);
+            setModifyError(error.message);
+            return;
+        }
+
+        setIsModifying(false);
+        setModifyAuthenticated(false);
+        setPassword("");
+        window.location.reload(); // Hard reload to fetch new data since it's a Server Component wrapping this Client Component
+    };
+
+    const inputClass =
+        "w-full px-4 py-3 text-sm rounded-xl glass bg-surface border-none outline-none focus:ring-2 focus:ring-accent/30 transition-all placeholder:text-muted";
 
     return (
         <div className="relative min-h-screen">
@@ -154,13 +227,20 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
                     <p className="text-sm text-muted">{t("detail.screenshot")}</p>
                 </motion.div>
 
-                {/* Delete Area */}
+                {/* Modify / Delete Area */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.5 }}
-                    className="flex justify-center mt-12 mb-8"
+                    className="flex justify-center gap-4 mt-12 mb-8"
                 >
+                    <button
+                        onClick={() => setIsModifying(true)}
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium text-blue-400 bg-blue-400/10 hover:bg-blue-400/20 transition-all duration-200"
+                    >
+                        <Edit2 className="w-4 h-4" />
+                        {t("detail.modify" as TranslationKey)}
+                    </button>
                     <button
                         onClick={() => setIsDeleting(true)}
                         className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium text-red-400 bg-red-400/10 hover:bg-red-400/20 transition-all duration-200"
@@ -174,7 +254,7 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
             {/* Delete Confirmation Modal */}
             <AnimatePresence>
                 {isDeleting && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-background/80 backdrop-blur-sm">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-background/80 backdrop-blur-sm">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
@@ -222,6 +302,219 @@ export function AppDetailClient({ app: initialApp }: { app: App }) {
                                 </button>
                             </form>
                         </motion.div>
+                    </div>
+                )}
+
+                {isModifying && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-12 bg-background/80 backdrop-blur-sm overflow-y-auto">
+                        <div className="min-h-full flex items-center justify-center w-full my-auto">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="bg-card glass border border-card-border p-6 rounded-[var(--radius-card)] max-w-2xl w-full relative my-8"
+                            >
+                                <button
+                                    onClick={() => {
+                                        setIsModifying(false);
+                                        setModifyAuthenticated(false);
+                                        setPassword("");
+                                        setPasswordError(false);
+                                    }}
+                                    className="absolute right-4 top-4 text-muted hover:text-foreground transition-colors z-10"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+
+                                {!modifyAuthenticated ? (
+                                    <div className="text-center py-8">
+                                        <div className="w-14 h-14 rounded-full bg-accent/15 flex items-center justify-center mx-auto mb-6">
+                                            <Lock className="w-6 h-6 text-accent" />
+                                        </div>
+                                        <h3 className="text-xl font-bold mb-2">{t("submit.title")}</h3>
+                                        <p className="text-sm text-muted mb-6">
+                                            {t("delete.warning")}
+                                        </p>
+                                        <form onSubmit={handleModifyPasswordSubmit} className="flex flex-col gap-4 max-w-sm mx-auto">
+                                            <div>
+                                                <input
+                                                    type="password"
+                                                    value={password}
+                                                    onChange={(e) => setPassword(e.target.value)}
+                                                    placeholder={t("delete.placeholder")}
+                                                    className={inputClass}
+                                                    autoFocus
+                                                />
+                                                {passwordError && (
+                                                    <p className="mt-2 text-sm text-red-400 text-left">{t("delete.incorrect")}</p>
+                                                )}
+                                            </div>
+                                            <button
+                                                type="submit"
+                                                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-accent text-white hover:bg-accent-hover transition-all"
+                                            >
+                                                {t("submit.unlock")}
+                                            </button>
+                                        </form>
+                                    </div>
+                                ) : (
+                                    <div className="pt-4">
+                                        <h3 className="text-2xl font-bold mb-6">{t("detail.modify" as TranslationKey)}: {app.name}</h3>
+                                        <form onSubmit={handleModifySubmit} className="flex flex-col gap-6">
+                                            {/* App Name */}
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">{t("submit.appName")} *</label>
+                                                <input
+                                                    required
+                                                    value={form.name}
+                                                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                                    className={inputClass}
+                                                />
+                                            </div>
+
+                                            {/* Icon Selection */}
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">
+                                                    {t("submit.emoji")} *
+                                                </label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {EMOJI_OPTIONS.map((emoji) => (
+                                                        <button
+                                                            key={emoji}
+                                                            type="button"
+                                                            onClick={() => setForm({ ...form, emoji })}
+                                                            className={`w-12 h-12 rounded-xl text-2xl flex items-center justify-center transition-all ${form.emoji === emoji
+                                                                ? "bg-accent/20 scale-110 shadow-lg shadow-accent/10 border-2 border-accent"
+                                                                : "glass bg-surface hover:bg-white/10 border-2 border-transparent"
+                                                                }`}
+                                                        >
+                                                            {emoji}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Short Description */}
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">
+                                                    {t("submit.shortDescription")} *
+                                                </label>
+                                                <input
+                                                    required
+                                                    value={form.shortDescription}
+                                                    onChange={(e) =>
+                                                        setForm({ ...form, shortDescription: e.target.value })
+                                                    }
+                                                    className={inputClass}
+                                                />
+                                            </div>
+
+                                            {/* Long Description */}
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">
+                                                    {t("submit.longDescription")} *
+                                                </label>
+                                                <textarea
+                                                    required
+                                                    rows={4}
+                                                    value={form.longDescription}
+                                                    onChange={(e) =>
+                                                        setForm({ ...form, longDescription: e.target.value })
+                                                    }
+                                                    className={`${inputClass} resize-none`}
+                                                />
+                                            </div>
+
+                                            {/* Category */}
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">
+                                                    {t("submit.category")} *
+                                                </label>
+                                                <select
+                                                    required
+                                                    value={form.category}
+                                                    onChange={(e) => setForm({ ...form, category: e.target.value as Category })}
+                                                    className={inputClass}
+                                                >
+                                                    <option value="">{t("submit.category")}</option>
+                                                    {allCategories
+                                                        .filter((c) => c !== "All")
+                                                        .map((cat) => (
+                                                            <option key={cat} value={cat}>
+                                                                {t(`cat.${cat}` as TranslationKey)}
+                                                            </option>
+                                                        ))}
+                                                </select>
+                                            </div>
+
+                                            {/* Launch URL */}
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">
+                                                    {t("submit.launchUrl")} *
+                                                </label>
+                                                <input
+                                                    required
+                                                    type="url"
+                                                    value={form.launchUrl}
+                                                    onChange={(e) => setForm({ ...form, launchUrl: e.target.value })}
+                                                    className={inputClass}
+                                                />
+                                            </div>
+
+                                            {/* Screenshot URL */}
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">
+                                                    {t("submit.screenshotUrl")}
+                                                </label>
+                                                <input
+                                                    type="url"
+                                                    value={form.screenshotUrl}
+                                                    onChange={(e) =>
+                                                        setForm({ ...form, screenshotUrl: e.target.value })
+                                                    }
+                                                    className={inputClass}
+                                                />
+                                            </div>
+
+                                            {/* Tags */}
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">
+                                                    {t("submit.tags")}
+                                                </label>
+                                                <input
+                                                    value={form.tags}
+                                                    onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                                                    className={inputClass}
+                                                />
+                                            </div>
+
+                                            {/* Submit */}
+                                            {modifyError && (
+                                                <p className="text-sm text-red-400 text-center">{modifyError}</p>
+                                            )}
+
+                                            <button
+                                                type="submit"
+                                                disabled={submittingModify}
+                                                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold bg-accent text-white hover:bg-accent-hover transition-all duration-200 cursor-pointer mt-4 disabled:opacity-60 disabled:cursor-not-allowed"
+                                            >
+                                                {submittingModify ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                        Saving...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Save className="w-4 h-4" />
+                                                        Save Changes
+                                                    </>
+                                                )}
+                                            </button>
+                                        </form>
+                                    </div>
+                                )}
+                            </motion.div>
+                        </div>
                     </div>
                 )}
             </AnimatePresence>
